@@ -9,11 +9,10 @@ import { buttons } from './tower-controls.js';
 import { PixelListener } from '../../api/lib/PixelListener.js';
 import { TOWER_DIGITS } from './tower-digits.js';
 import { Ocr } from '../../api/lib/Ocr.js';
-import { emergeGamingSDK } from '../../api/emergamingSDK.js';
 import { DropJoystickImpl } from 'src/api/lib/DropJoystickImpl.js';
 
 /**
- * ### DIGGER LOGIC ###
+ * ### TOWER LOGIC ###
  * ---------------------
  *
  * Pass through global variables (from other script tags) and/or required DOM elements that the game needs to run
@@ -57,12 +56,13 @@ export const runTower = (
 
   /*** Setup and Start DOS Game ***/
   let dosGame = new DosEmulator(dos, canvasContainer, emulators);
-
+  
+//Start Loading
   instructions.addEventListener('click', () => {
-    // console.log ("CLICK")
     instructions.style.display = 'none';
     loading.style.display = 'none';
 
+//Start Game
     dosGame.start('/games/tower/tower.jsdos').then((_ci) => {
       /*** Setup Joystick ***/
       let joystick: DropJoystick = new DropJoystick(
@@ -75,14 +75,6 @@ export const runTower = (
       //joystick.overrideDirections({up:null, down:null, left:188, right:191})
       //let gamepad:GamepadController = new GamepadController(dosGame, buttons);
 
-      //   document.addEventListener('keydown', (e) => {
-      //     if (e.key == ' ') {
-      //       dosGame.pressAndReleaseKey(112);
-      //       e.preventDefault();
-      //       e.stopImmediatePropagation();
-      //     }
-      //   });
-
       //dosGame.overrideKey(" ", 112)
 
       /*** Setup Main Loop **/
@@ -93,15 +85,16 @@ export const runTower = (
       /*** Resize Canvas ***/
       window.addEventListener('resize', () => joystick.resize());
 
-      /** Watch Pixels **/
+      //Watch Life Bar (Pixels)
       let pixelListener: PixelListener = dosGame.getPixelListenerInstance();
-      pixelListener.addWatch(0, 97);
+      pixelListener.addWatch(4, 20); 
 
+    //Query for pixels
       setInterval(() => {
         pixelListener.query().then((values) => {
           console.log(values);
         });
-
+    //Query screenshot
         dosGame.getScreenshot().then((values) => {
           console.log(values);
         });
@@ -120,7 +113,7 @@ export const runTower = (
       //                     loading.style.display = 'none'
       //                 }, 400)
       //                 if (!started) {
-      //                     // emergeGamingSDK.startLevel();
+      //                  
       // 					window.parent.postMessage({event: "LEVEL_START"}, '*')
       //                     started = true}
       //                 break;
@@ -132,7 +125,7 @@ export const runTower = (
       //                     dosGame.getScreenshot().then((imageData) => ocr.readDigits(imageData).then((score) => {
       //                         console.log ("GAME OVER: " + score);
       //                         if(!submitted){
-      //                             // emergeGamingSDK.endLevel(score);
+      //                    
       // 							window.parent.postMessage({event: "LEVEL_END", score: score, gameID: 'digger'}, '*')
       //                             submitted = true;
       //                         }
@@ -149,3 +142,4 @@ export const runTower = (
     });
   });
 };
+
