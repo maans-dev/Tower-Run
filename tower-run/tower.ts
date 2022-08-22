@@ -12,6 +12,22 @@ import { Ocr } from '../../api/lib/Ocr.js';
 import { DropJoystickImpl } from 'src/api/lib/DropJoystickImpl.js';
 
 /**
+ * ENd State
+ *  if (time = 0 && health = 0) {GAME OVER}
+ * Play State
+ *  if
+ *
+ *
+ * Start State
+ *  immediately press N
+ *  Then press Spacebar
+ *
+ * IF HEALTH
+ *     Playing state
+ *    do nothing
+ */
+
+/**
  * ### TOWER LOGIC ###
  * ---------------------
  *
@@ -36,14 +52,23 @@ export const runTower = (
   /*** Setup ***/
   GameTools.disableBrowserShortcuts();
 
-  let startX = 12;
-  let startY = 0;
-  let charWidth = 10;
-  let charHeight = 12;
-  let charSpacing = 2;
-  let numChars = 5;
+  // initialise the time OCR
+  let startX = 145;
+  let startY = 1;
+  let charWidth = 7;
+  let charHeight = 6;
+  let charSpacing = 1;
+  let numChars = 4;
 
-  let ocr: Ocr = new Ocr(
+  // initialise the score OCR
+  let startX2 = 1;
+  let startY2 = 9;
+  let charWidth2 = 7;
+  let charHeight2 = 6;
+  let charSpacing2 = 1;
+  let numChars2 = 8;
+
+  let ocrTime: Ocr = new Ocr(
     startX,
     startY,
     charWidth,
@@ -54,15 +79,27 @@ export const runTower = (
     TOWER_DIGITS
   );
 
+  let ocrScore: Ocr = new Ocr(
+    startX2,
+    startY2,
+    charWidth2,
+    charHeight2,
+    charSpacing2,
+    numChars2,
+    0,
+    TOWER_DIGITS
+  );
+
   /*** Setup and Start DOS Game ***/
   let dosGame = new DosEmulator(dos, canvasContainer, emulators);
-  
-//Start Loading
+
+  //Start Loading
   instructions.addEventListener('click', () => {
     instructions.style.display = 'none';
-    loading.style.display = 'none';
+    loading.style.display = 'block';
+    window.parent.postMessage({ event: 'LEVEL_START' }, '*');
 
-//Start Game
+    //Start Game
     dosGame.start('/games/tower/tower.jsdos').then((_ci) => {
       /*** Setup Joystick ***/
       let joystick: DropJoystick = new DropJoystick(
@@ -87,58 +124,110 @@ export const runTower = (
 
       //Watch Life Bar (Pixels)
       let pixelListener: PixelListener = dosGame.getPixelListenerInstance();
-      pixelListener.addWatch(4, 20); 
+      pixelListener.addWatch(4, 20);
 
-    //Query for pixels
-      setInterval(() => {
-        pixelListener.query().then((values) => {
-          console.log(values);
-        });
-    //Query screenshot
-        dosGame.getScreenshot().then((values) => {
-          console.log(values);
-        });
-      }, 1000);
+      //Query for pixels
+      // setInterval(() => {
+      // pixelListener.query().then((values) => {
+      //   console.log('COLOUR: ', values);
+      // });
+      //Query screenshot
+      // dosGame.getScreenshot().then((values) => {
+      //   console.log(values);
+      // });
+
+      //   dosGame.getScreenshot().then((imageData) =>
+      //     ocrTime.readDigits(imageData).then((time) => {
+      //       console.log('TIME:  ' + time);
+      //     })
+      //   );
+      // }, 1000);
+
+      /** STATES */
+      enum state {
+        LOADING,
+        PLAYING,
+        GAME_OVER,
+      }
+
+      let currentState = state.LOADING;
 
       /** State Machine **/
-      //     setInterval(() => pixelListener.query().then((values) => {
-      //         switch(values[0]) {
-      //             case '#000000':
-      //                 let started = false
-      //                 setTimeout(() => {
-      //                     console.log("Enter pressed...")
-      //                     dosGame.pressAndReleaseKey(13);
-      //                 }, 300)
-      //                 setTimeout(() => {
-      //                     loading.style.display = 'none'
-      //                 }, 400)
-      //                 if (!started) {
-      //                  
-      // 					window.parent.postMessage({event: "LEVEL_START"}, '*')
-      //                     started = true}
-      //                 break;
-      //             case '#55ffff':
-      //                 break;
-      //             case '#ffffff':
-      //                 let submitted = false;
-      //                 setTimeout(() => {
-      //                     dosGame.getScreenshot().then((imageData) => ocr.readDigits(imageData).then((score) => {
-      //                         console.log ("GAME OVER: " + score);
-      //                         if(!submitted){
-      //                    
-      // 							window.parent.postMessage({event: "LEVEL_END", score: score, gameID: 'digger'}, '*')
-      //                             submitted = true;
-      //                         }
-      //                         setTimeout(() => {
-      //                             window.location.reload()
-      //                         }, 400);
-      //                     }))
-      //                 }, 500);
-      //             break;
-      //         default:
-      //            console.debug('Colour from another mother');
-      //     }
-      // }), 1000);
+      setInterval(
+        () =>
+          pixelListener.query().then((values) => {
+            dosGame.getScreenshot().then((imageData) => {
+              ocrTime.readDigits(imageData).then((time) => {
+                if (
+                  (time == 0 || values[0] == '#000000') &&
+                  currentState == state.PLAYING
+                ) {
+                  console.log('GAME SHOULD BE OVER');
+                  currentState = state.GAME_OVER;
+                  console.log('STATE: ', currentState);
+
+                  //submit the score & reload
+                  dosGame.getScreenshot().then((imageData) =>
+                    ocrScore.readDigits(imageData).then((score) => {
+                      console.log('GAME OVER: ' + score);
+                      window.parent.postMessage(
+                        { event: 'LEVEL_END', score: score, gameID: 'tower' },
+                        '*'
+                      );
+                      setTimeout(() => {
+                        window.location.reload();
+                      }, 500);
+                    })
+                  );
+
+                  window.location.reload();
+                } else if (currentState == state.LOADING) {
+                  console.log('GOING INTO THE MENU STARTING THING');
+
+                  //start
+                  //press N then press space
+                  dosGame.pressAndReleaseKeySynch(AsciiMapping.N);
+
+                  console.log('Pressing N');
+
+                  setTimeout(() => {
+                    dosGame.pressAndReleaseKey(AsciiMapping.SPACE);
+                    console.log('Pressing SPACE');
+
+                    currentState = state.PLAYING;
+                  }, 1000);
+                }
+                // else if (currentState == state.GAME_OVER) {
+                //   console.log('Game Over');
+                //   //submit the score & reload
+                //   window.location.reload();
+                // }
+                else {
+                  console.log('PLAYING STATE');
+                  loading.style.display = 'none';
+                }
+              });
+            });
+
+            // START END GAME
+            // if (
+            //   values[0] === '#000000' ||
+
+            //   (dosGame.getScreenshot().then((imageData) =>
+            //     ocrTime.readDigits(imageData).then((time) => {
+
+            //     })
+            //   )
+            // ))
+            // {
+            //   //do stuff
+            // }
+            // // END END GAME
+            // else if (values[0] === '#ff55ff') {
+            // }
+          }),
+        1000
+      );
     });
   });
 };
