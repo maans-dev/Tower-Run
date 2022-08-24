@@ -9,22 +9,22 @@ import { buttons } from './tower-controls.js';
 import { PixelListener } from '../../api/lib/PixelListener.js';
 import { TOWER_DIGITS } from './tower-digits.js';
 import { Ocr } from '../../api/lib/Ocr.js';
-import { DropJoystickImpl } from 'src/api/lib/DropJoystickImpl.js';
+// import { DropJoystickImpl } from 'src/api/lib/DropJoystickImpl.js';
 
 /**
- * ENd State
+ * End State
  *  if (time = 0 && health = 0) {GAME OVER}
  * Play State
  *  if
  *
  *
  * Start State
- *  immediately press N
+ *  immediately press
  *  Then press Spacebar
  *
- * IF HEALTH
- *     Playing state
- *    do nothing
+ *  if(!loading)
+ *   Playing state
+ *   do nothing
  */
 
 /**
@@ -59,15 +59,6 @@ export const runTower = (
   let charHeight = 6;
   let charSpacing = 1;
   let numChars = 4;
-
-  // initialise the score OCR
-  let startX2 = 1;
-  let startY2 = 9;
-  let charWidth2 = 7;
-  let charHeight2 = 6;
-  let charSpacing2 = 1;
-  let numChars2 = 8;
-
   let ocrTime: Ocr = new Ocr(
     startX,
     startY,
@@ -79,21 +70,28 @@ export const runTower = (
     TOWER_DIGITS
   );
 
+  // initialise the score OCR
+  let startXScore = 1;
+  let startYScore = 9;
+  let charWidthScore = 7;
+  let charHeightScore = 6;
+  let charSpacingScore = 1;
+  let numCharsScore = 8;
   let ocrScore: Ocr = new Ocr(
-    startX2,
-    startY2,
-    charWidth2,
-    charHeight2,
-    charSpacing2,
-    numChars2,
+    startXScore,
+    startYScore,
+    charWidthScore,
+    charHeightScore,
+    charSpacingScore,
+    numCharsScore,
     0,
     TOWER_DIGITS
   );
 
-  /*** Setup and Start DOS Game ***/
+   //Setup & Start Dos Game
   let dosGame = new DosEmulator(dos, canvasContainer, emulators);
 
-  //Start Loading
+   //Start Loading
   instructions.addEventListener('click', () => {
     instructions.style.display = 'none';
     loading.style.display = 'block';
@@ -101,7 +99,7 @@ export const runTower = (
 
     //Start Game
     dosGame.start('/games/tower/tower.jsdos').then((_ci) => {
-      /*** Setup Joystick ***/
+    //Setp Joystick
       let joystick: DropJoystick = new DropJoystick(
         window,
         controlCanvas,
@@ -119,19 +117,20 @@ export const runTower = (
       //     gamepad.update();
       // })
 
-      /*** Resize Canvas ***/
+    //Resize Canvas
       window.addEventListener('resize', () => joystick.resize());
 
-      //Watch Life Bar (Pixels)
+    //Watch Life Bar (Pixels)
       let pixelListener: PixelListener = dosGame.getPixelListenerInstance();
       pixelListener.addWatch(4, 20);
 
-      //Query for pixels
+    //Query for pixels
       // setInterval(() => {
       // pixelListener.query().then((values) => {
       //   console.log('COLOUR: ', values);
       // });
-      //Query screenshot
+
+    //Query screenshot
       // dosGame.getScreenshot().then((values) => {
       //   console.log(values);
       // });
@@ -143,7 +142,7 @@ export const runTower = (
       //   );
       // }, 1000);
 
-      /** STATES */
+      
       enum state {
         LOADING,
         PLAYING,
@@ -161,11 +160,11 @@ export const runTower = (
                 if (
                   (time == 0 || values[0] == '#000000') &&
                   currentState == state.PLAYING
-                ) {
-                  console.log('GAME SHOULD BE OVER');
+                ) 
+                {
+                  console.log('Game Over');
                   currentState = state.GAME_OVER;
                   console.log('STATE: ', currentState);
-
                   //submit the score & reload
                   dosGame.getScreenshot().then((imageData) =>
                     ocrScore.readDigits(imageData).then((score) => {
@@ -182,18 +181,12 @@ export const runTower = (
 
                   window.location.reload();
                 } else if (currentState == state.LOADING) {
-                  console.log('GOING INTO THE MENU STARTING THING');
-
-                  //start
-                  //press N then press space
+                  console.log('Loading State')
                   dosGame.pressAndReleaseKeySynch(AsciiMapping.N);
-
-                  console.log('Pressing N');
-
+                  // console.log('Pressing N');
                   setTimeout(() => {
                     dosGame.pressAndReleaseKey(AsciiMapping.SPACE);
-                    console.log('Pressing SPACE');
-
+                    // console.log('Pressing SPACE');
                     currentState = state.PLAYING;
                   }, 1000);
                 }
@@ -203,7 +196,7 @@ export const runTower = (
                 //   window.location.reload();
                 // }
                 else {
-                  console.log('PLAYING STATE');
+                  console.log('Playing State');
                   loading.style.display = 'none';
                 }
               });
@@ -231,4 +224,3 @@ export const runTower = (
     });
   });
 };
-
